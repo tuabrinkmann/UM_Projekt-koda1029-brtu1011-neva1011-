@@ -79,8 +79,8 @@ sensor4_data = prepare_data(sense_df[['timestamp', 'UV-Intensität']].copy())
 
 
 # Funktion zum Trainieren des Modells und Vorhersagen machen
-def make_predictions(data, forecast_steps=3*24):
-    train_size = int(len(data) * 0.8)
+def make_predictions_SARIMA(data, forecast_steps=3*24):
+    train_size = int(len(data) * 0.9)
     train, test = data[:train_size], data[train_size:]
     p, d, q = 2, 1, 2  # ARIMA-Komponenten
     P, D, Q, m = 1, 1, 1, 24  # Saisonale Komponenten 
@@ -99,25 +99,45 @@ def make_predictions(data, forecast_steps=3*24):
 
     return forecast_series.sort_index(), mse_scores, r2_scores
 
+# AR Prediction
+def make_predictions_AR(data, forecast_steps= 3*24):
+    train_size = int(len(data) * 0.9)
+    train, test = data[:train_size], data[train_size:]
+    p = 3
+    model = sm.tsa.AutoReg(train, lags=(p))
+    fit = model.fit()
+    # Vorhersage
+    forecast = fit.predict(start=len(train), end=(len(train) + forecast_steps-1), dynamic=False)
+    forecast_index = pd.date_range(start=train.index[-1] + pd.DateOffset(hours=1), periods=forecast_steps, freq='h')
+    forecast_series = pd.Series(forecast, index=forecast_index)
+
+    # MSE
+    mse_scores = mean_squared_error(test, forecast_series[:len(test)])
+    
+    # Bestimmtheitsmaß
+    r2_scores = r2_score(test, forecast_series[:len(test)])
+
+    return forecast_series.sort_index(), mse_scores, r2_scores
+
+
 # Vorhersagen für die nächsten 3 Tage machen
 forecasts = {}
-forecasts['Luftdruck'] = make_predictions(sensor1_data)[0]
-forecasts['rel. Luftfeuchte'] = make_predictions(sensor2_data)[0]
-forecasts['Temperatur'] = make_predictions(sensor3_data)[0]
-forecasts['UV-Intensität'] = make_predictions(sensor4_data)[0]
+forecasts['Luftdruck'] = make_predictions_AR(sensor1_data)[0]
+forecasts['rel. Luftfeuchte'] = make_predictions_SARIMA(sensor2_data)[0]
+forecasts['Temperatur'] = make_predictions_SARIMA(sensor3_data)[0]
+forecasts['UV-Intensität'] = make_predictions_SARIMA(sensor4_data)[0]
 
 mse = {}
-mse['Luftdruck'] = make_predictions(sensor1_data)[1]
-mse['rel. Luftfeuchte'] = make_predictions(sensor2_data)[1]
-mse['Temperatur'] = make_predictions(sensor3_data)[1]
-mse['UV-Intensität'] = make_predictions(sensor4_data)[1]
+mse['Luftdruck'] = make_predictions_AR(sensor1_data)[1]
+mse['rel. Luftfeuchte'] = make_predictions_SARIMA(sensor2_data)[1]
+mse['Temperatur'] = make_predictions_SARIMA(sensor3_data)[1]
+mse['UV-Intensität'] = make_predictions_SARIMA(sensor4_data)[1]
 
 r2 = {}
-r2['Luftdruck'] = make_predictions(sensor1_data)[2]
-r2['rel. Luftfeuchte'] = make_predictions(sensor2_data)[2]
-r2['Temperatur'] = make_predictions(sensor3_data)[2]
-r2['UV-Intensität'] = make_predictions(sensor4_data)[2]
-
+r2['Luftdruck'] = make_predictions_AR(sensor1_data)[2]
+r2['rel. Luftfeuchte'] = make_predictions_SARIMA(sensor2_data)[2]
+r2['Temperatur'] = make_predictions_SARIMA(sensor3_data)[2]
+r2['UV-Intensität'] = make_predictions_SARIMA(sensor4_data)[2]
 
 # Funktionen 
 
