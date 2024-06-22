@@ -141,7 +141,7 @@ def calculate_uv_index(uv_power):
     ''' 
     Berechnet den Uv-Index
     '''
-    uv_index = float(uv_power) / 25
+    uv_index = float(uv_power) * 0.002255
 
     # UV-Index-Klasse
     if uv_index <= 2:
